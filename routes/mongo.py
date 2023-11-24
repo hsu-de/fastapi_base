@@ -1,15 +1,15 @@
 from fastapi import APIRouter, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from models.todos import Todo
 from config.database_mongodb import collection_name
 from config.response_sample import responses
-from schema.schemas import individual_serial, list_serial
+from models.mongo import Todo
+from schema.mongo import individual_serial, list_serial
 from bson import ObjectId
 
 router = APIRouter(
-    prefix='/todo',
-    tags=['todo']
+    prefix='/mongo',
+    tags=['mongo']
 )
 
 # GET
