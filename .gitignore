@@ -290,3 +290,6 @@ $RECYCLE.BIN/
 
 # database from docker-compose
 data/
+
+# personal
+log.txt
