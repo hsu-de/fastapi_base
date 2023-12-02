@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import Annotated
-from schema.mysql import UserBase
+from schema.mysql import UserBase, UserSchema
 from models.mysql import Base, User, UserDetail
 from models.base import ResponseBase, ErrorMessage
 from config.database_mysql import engine, get_db
@@ -21,7 +21,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 async def select_user(db: db_dependency,
                       skip: Annotated[int, Query(ge=0)] = 0,
                       limit: Annotated[int, Query(ge=1, le=100)] = 20):
-    users = db.query(User).offset(skip).limit(limit).all()
+    users = db.query(UserDetail).offset(skip).limit(limit).all()
     
     return JSONResponse(
         {**ResponseBase().model_dump(), 'users': jsonable_encoder(users)}
@@ -30,6 +30,12 @@ async def select_user(db: db_dependency,
 @router.post('/user')
 async def insert_user(user: UserBase,
                       db: db_dependency):
+    email_check = db.query(User).filter(User.email == user.email).first()
+    if email_check != None:
+        return JSONResponse(
+            ErrorMessage(message='email already existed.', details=f'{user.email}').model_dump(),
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
     db_user = UserDetail(**user.model_dump())
     db.add(db_user)
     db.commit()
@@ -41,19 +47,17 @@ async def insert_user(user: UserBase,
 
 @router.put('/user/{user_id}')
 async def update_user(user_id: str,
-                      user: UserBase,
+                      user: UserSchema,
                       db: db_dependency):
     user_id = uuid.UUID(user_id)
-    db_user = db.query(UserDetail).filter(User.id == user_id).first()
+    db_user = db.query(UserDetail).filter(UserDetail.id == user_id).first()
     if not db_user:
         raise JSONResponse(
             ErrorMessage(message='user not found.').model_dump(),
             status_code=status.HTTP_404_NOT_FOUND
         )
-    db_user.username = user.username
-    db_user.password = user.password
-    db_user.email = user.email
-    # 先寫死，再查查看更好的寫法
+    user_data = user.model_dump(exclude_unset=True)
+    db.query(UserDetail).filter(UserDetail.id == user_id).update(user_data)
     db.commit()
 
     return JSONResponse(

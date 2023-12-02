@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, date
 
 class UserBase(BaseModel):
-    username: str
+    displayName: str
     password: str
     email: EmailStr
 
@@ -17,6 +17,12 @@ class UserBase(BaseModel):
     #             }
     #         ]
     #     }
+
+class UserSchema(UserBase):
+    birthday: datetime
+    role: int
+    accountLevel: int
+    isRecommended: bool
 
 # class PostBase(BaseModel):
 #     title: str
