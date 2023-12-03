@@ -5,9 +5,13 @@ from typing import Annotated
 from schema.mysql import UserBase, UserSchema
 from models.mysql import Base, User, UserDetail
 from models.base import ResponseBase, ErrorMessage
-from config.database_mysql import engine, get_db
+from config.database_mysql import engine, get_db, async_get_db
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import uuid
+
+
 
 router = APIRouter(
     prefix='/mysql',
@@ -16,12 +20,16 @@ router = APIRouter(
 
 Base.metadata.create_all(bind=engine)
 db_dependency = Annotated[Session, Depends(get_db)]
+async_db_dependency = Annotated[AsyncSession, Depends(async_get_db)]
 
 @router.get('/users')
-async def select_user(db: db_dependency,
+async def select_user(db: async_db_dependency,
                       skip: Annotated[int, Query(ge=0)] = 0,
                       limit: Annotated[int, Query(ge=1, le=100)] = 20):
-    users = db.query(UserDetail).offset(skip).limit(limit).all()
+    # users = db.query(UserDetail).offset(skip).limit(limit).all()
+    query = select(UserDetail).offset(skip).limit(limit)
+    result = await db.execute(query)
+    users = result.scalars().all()
     
     return JSONResponse(
         {**ResponseBase().model_dump(), 'users': jsonable_encoder(users)}
