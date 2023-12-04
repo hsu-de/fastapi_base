@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from config.database_mongodb import collection_name
+from typing import Annotated
+from config.database_mongodb import db, async_db
 from config.response_sample import responses
 from models.mongo import Todo
+from models.base import ResponseBase, ErrorMessage
 from schema.mongo import individual_serial, list_serial
 from bson import ObjectId
 
@@ -13,73 +15,58 @@ router = APIRouter(
 )
 
 # GET
-@router.get('/')
-async def get_todos():
-    todos = list_serial(collection_name.find())
+@router.get('/todos')
+async def get_todos(skip: Annotated[int, Query(ge=0)] = 0,
+                    limit: Annotated[int, Query(ge=1, le=100)] = 20):
+    # todos = list_serial(db.todo_collection.find())
+    cursor = async_db.todo_collection.find().skip(skip).limit(limit)
+    result = await cursor.to_list(limit)
+
     return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "success": True,
-            "todos": todos
-        }
+        {**ResponseBase().model_dump(), 'todos': list_serial(result)},
+        status_code=status.HTTP_200_OK
     )
 
 # POST
-@router.post('/', responses=responses)
+@router.post('/todo')
 async def post_todo(todo: Todo):
-    result = collection_name.insert_one(dict(todo))
+    result = db.todo_collection.insert_one(dict(todo))
+
     return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
-        content={
-            "success": True,
-            "message": "todo inserted.",
-            "todo": {**todo.model_dump(), 'id': str(result.inserted_id)}
-        }
+        {**ResponseBase(message='todo inserted.').model_dump(), 'todo': {**todo.model_dump(), 'id': str(result.inserted_id)}},
+        status_code=status.HTTP_201_CREATED
     )
 
 # PUT
-@router.put('/{todo_id}')
+@router.put('/todo/{todo_id}')
 async def put_todo(todo_id:str, todo: Todo):
-    result = collection_name.find_one_and_update(
+    result = db.todo_collection.find_one_and_update(
         {"_id": ObjectId(todo_id)},
         {"$set": dict(todo)},
         return_document=True
     )
     if not result:
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                "success": False,
-                "message": f"todo({todo_id}) not found."
-            }
+            ErrorMessage(message=f'todo not found.', details=todo_id).model_dump(),
+            status_code=status.HTTP_404_NOT_FOUND
         )
     return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "success": True,
-            "message": f"todo({todo_id}) updated.",
-            "todo": individual_serial(result)
-        }
+        {**ResponseBase(message=f'todo({todo_id}) updated.').model_dump(), 'todo': individual_serial(result)},
+        status_code=status.HTTP_200_OK
     )
 
 # DELETE
-@router.delete('/{todo_id}')
+@router.delete('/todo/{todo_id}')
 async def delete_todo(todo_id: str):
-    result = collection_name.find_one_and_delete(
+    result = db.todo_collection.find_one_and_delete(
         {"_id": ObjectId(todo_id)}
     )
     if not result:
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                "success": False,
-                "message": f"todo({todo_id}) not found."
-            }
+            ErrorMessage(message=f'todo not found.', details=todo_id).model_dump(),
+            status_code=status.HTTP_404_NOT_FOUND
         )
     return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "success": True,
-            "message": f"todo({todo_id}) has been deleted."
-        }
+        ResponseBase(message=f'todo({todo_id}) has been deleted.').model_dump(),
+        status_code=status.HTTP_200_OK
     )
