@@ -13,10 +13,13 @@ app = FastAPI(
     title="Base API",
     version="0.0.1",
     description='''
-        Base setting for DE with FastAPI.
-        Example:
-            userData with mysql
-            todo with mongoDB
+        Here is the basic FastAPI configuration written by **D.E.**.
+        
+        which includes:
+        * userData CRUD exsamples using MySQL
+        * todo CRUD exsamples using MongoDB
+
+        You can build more endpoints on top of this foundation.
     '''
 )
 
