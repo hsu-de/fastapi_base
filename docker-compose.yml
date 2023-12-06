@@ -13,6 +13,10 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: rootpassword
     volumes:
       - ./data/mongodb:/data/db
+    healthcheck:
+      test: ["CMD","mongosh", "--eval", "db.adminCommand('ping')"]
+      timeout: 1s
+      retries: 10
 
   mongo-express:
     image: mongo-express
@@ -27,7 +31,7 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: rootpassword
       ME_CONFIG_MONGODB_URL: mongodb://root:rootpassword@mongodb:27017/
   
-  mysql:
+  mysqldb:
     image: mysql:8.1
     container_name: mysqldb
     restart: unless-stopped
@@ -38,3 +42,26 @@ services:
       MYSQL_DATABASE: fastapi
     volumes:
       - ./data/mysqldb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 1s
+      retries: 10
+  
+  fast-api:
+    build: .
+    image: fast_base
+    container_name: fast_api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - mongo-express
+      - mysqldb
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app
+    environment:
+      MONGODB_URL: mongodb://root:rootpassword@mongodb:27017/
+      MYSQL_URL: mysql+pymysql://root:rootpassword@mysqldb:3306/fastapi
+      ASYNC_MYSQL_URL: mysql+aiomysql://root:rootpassword@mysqldb:3306/fastapi
+    command: sh -c "until nc -z -w 1 mysqldb 3306; do sleep 1; done && uvicorn main:app --reload --host 0.0.0.0 --port 8000"

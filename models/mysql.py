@@ -9,6 +9,7 @@ import uuid, enum
 from .mixins import Timestamp
 
 class Role(enum.IntEnum):
+    no_setting = 0
     normal = 1
     creator = 2
     super_user = 3
@@ -28,7 +29,7 @@ class UserDetail(Timestamp, User):
 
     password = Column(String(256))
     birthday = Column(DateTime)
-    role = Column(Enum(Role))
+    role = Column(Enum(Role), default=1)
     accountLevel = Column(Integer, default=0)
     isRecommended = Column(Boolean, default=False)
 
