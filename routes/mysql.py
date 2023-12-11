@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import Annotated
@@ -8,7 +8,7 @@ from models.base import ResponseBase, ErrorMessage
 from config.database_mysql import engine, get_db, async_get_db
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc, asc
 import uuid
 
 
@@ -27,7 +27,45 @@ async def select_user(db: async_db_dependency,
                       skip: Annotated[int, Query(ge=0)] = 0,
                       limit: Annotated[int, Query(ge=1, le=100)] = 20):
     # users = db.query(UserDetail).offset(skip).limit(limit).all()
+    query = select(UserDetail).offset(skip).limit(limit).order_by(UserDetail.createdAt.asc())
+    result = await db.execute(query)
+    users = result.scalars().all()
+    
+    return JSONResponse(
+        {**ResponseBase().model_dump(), 'users': jsonable_encoder(users)}
+    )
+
+@router.get('/filter_users')
+async def filter_select_user(db: async_db_dependency,
+                      request: Request,
+                      skip: Annotated[int, Query(ge=0)] = 0,
+                      limit: Annotated[int, Query(ge=1, le=100)] = 20,
+                      sortBy: str = 'createdAt',
+                      sortOrder: str = 'asc'):
+    params = dict(request.query_params)
     query = select(UserDetail).offset(skip).limit(limit)
+
+    # sort
+    sortOrder = desc if sortOrder.lower() == "desc" else asc
+    query = query.order_by(sortOrder(getattr(UserDetail, sortBy, UserDetail.createdAt)))
+
+    # filter
+    for key, value in params.items():
+        key_name = key.split(':')
+        if hasattr(UserDetail, key_name[0]):
+            if len(key_name)==1:
+                query = query.where(getattr(UserDetail, key) == value)
+            else:
+                match key_name[1]:
+                    case 'lt':
+                        query = query.where(getattr(UserDetail, key_name[0]) < value)
+                    case 'lte':
+                        query = query.where(getattr(UserDetail, key_name[0]) <= value)
+                    case 'gt':
+                        query = query.where(getattr(UserDetail, key_name[0]) > value)
+                    case 'gte':
+                        query = query.where(getattr(UserDetail, key_name[0]) >= value)
+    
     result = await db.execute(query)
     users = result.scalars().all()
     
