@@ -14,7 +14,7 @@ app = FastAPI(
     version="0.0.1",
     description='''
         Here is the basic FastAPI configuration written by **D.E.**.
-        
+
         which includes:
         * userData CRUD exsamples using MySQL
         * todo CRUD exsamples using MongoDB
@@ -23,14 +23,17 @@ app = FastAPI(
     '''
 )
 
+
 @CsrfProtect.load_config
 def get_csrf_config():
     return CsrfSettings()
+
 
 app.include_router(base.router)
 app.include_router(mongo.router)
 app.include_router(mysql.router)
 app.include_router(csrf.router)
+
 
 @app.exception_handler(CsrfProtectError)
 def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):

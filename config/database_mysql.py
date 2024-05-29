@@ -5,17 +5,15 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
 
-# engine = create_engine('mysql+pymysql://root:rootpassword@localhost:3306/fastapi')
-# async_engine = create_async_engine('mysql+aiomysql://root:rootpassword@localhost:3306/fastapi')
 
-# If use docker-compose
-engine = create_engine(os.getenv('MYSQL_URL'))
-async_engine = create_async_engine(os.getenv('ASYNC_MYSQL_URL'))
+engine = create_engine(os.getenv('MYSQL_URL', 'mysql+pymysql://root:rootpassword@localhost:3306/fastapi'))
+async_engine = create_async_engine(os.getenv('ASYNC_MYSQL_URL', 'mysql+aiomysql://root:rootpassword@localhost:3306/fastapi'))
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 Base = declarative_base()
+
 
 def get_db():
     db = SessionLocal()
@@ -23,6 +21,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 async def async_get_db():
     async with AsyncSessionLocal() as db:

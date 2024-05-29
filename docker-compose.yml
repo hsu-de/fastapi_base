@@ -3,7 +3,7 @@ version: '3.8'
 services:
 
   mongodb:
-    image: mongo:6.0.11
+    image: mongo:7.0.9
     container_name: mongodb
     restart: unless-stopped
     ports:
@@ -30,9 +30,11 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: rootpassword
       ME_CONFIG_MONGODB_URL: mongodb://root:rootpassword@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: rootpassword
   
   mysqldb:
-    image: mysql:8.1
+    image: mysql:8.4.0
     container_name: mysqldb
     restart: unless-stopped
     ports:
@@ -47,21 +49,21 @@ services:
       timeout: 1s
       retries: 10
   
-  fast-api:
-    build: .
-    image: fast_base
-    container_name: fast_api
-    restart: unless-stopped
-    depends_on:
-      - mongodb
-      - mongo-express
-      - mysqldb
-    ports:
-      - 8000:8000
-    volumes:
-      - .:/app
-    environment:
-      MONGODB_URL: mongodb://root:rootpassword@mongodb:27017/
-      MYSQL_URL: mysql+pymysql://root:rootpassword@mysqldb:3306/fastapi
-      ASYNC_MYSQL_URL: mysql+aiomysql://root:rootpassword@mysqldb:3306/fastapi
-    command: sh -c "until nc -z -w 1 mysqldb 3306; do sleep 1; done && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+  # fast-api:
+  #   build: .
+  #   image: fast_base
+  #   container_name: fast_api
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - mongodb
+  #     - mongo-express
+  #     - mysqldb
+  #   ports:
+  #     - 8000:8000
+  #   volumes:
+  #     - .:/app
+  #   environment:
+  #     MONGODB_URL: mongodb://root:rootpassword@mongodb:27017/
+  #     MYSQL_URL: mysql+pymysql://root:rootpassword@mysqldb:3306/fastapi
+  #     ASYNC_MYSQL_URL: mysql+aiomysql://root:rootpassword@mysqldb:3306/fastapi
+  #   command: sh -c "until nc -z -w 1 mysqldb 3306; do sleep 1; done && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
