@@ -32,7 +32,7 @@ def get_csrf_config():
 app.include_router(base.router)
 app.include_router(mongo.router)
 app.include_router(mysql.router)
-app.include_router(csrf.router)
+app.include_router(csrf.router, prefix='/csrf_token', tags=['csrf_token'])
 
 
 @app.exception_handler(CsrfProtectError)
