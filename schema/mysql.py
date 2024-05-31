@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr
+
 # pip install pydantic[email]
-from datetime import datetime, date
+from datetime import datetime
+
 
 class UserBase(BaseModel):
     displayName: str
@@ -18,11 +20,13 @@ class UserBase(BaseModel):
     #         ]
     #     }
 
+
 class UserSchema(UserBase):
     birthday: datetime
     role: int
     accountLevel: int
     isRecommended: bool
+
 
 # class PostBase(BaseModel):
 #     title: str

@@ -1,13 +1,19 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from routes import mongo, mysql, base, csrf
-
 from models.base import ErrorMessage
 from models.csrf import CsrfSettings
 from fastapi_csrf_protect import CsrfProtect
 from fastapi_csrf_protect.exceptions import CsrfProtectError
-
+from contextlib import asynccontextmanager
+from config.database_mysql import init_db
 # uvicorn main:app --reload
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
 
 app = FastAPI(
     title="Base API",
@@ -20,7 +26,8 @@ app = FastAPI(
         * todo CRUD exsamples using MongoDB
 
         You can build more endpoints on top of this foundation.
-    '''
+    ''',
+    lifespan=lifespan
 )
 
 
@@ -31,7 +38,7 @@ def get_csrf_config():
 
 app.include_router(base.router)
 app.include_router(mongo.router)
-app.include_router(mysql.router)
+app.include_router(mysql.router, prefix='/mysql', tags=['mysql'])
 app.include_router(csrf.router, prefix='/csrf_token', tags=['csrf_token'])
 
 
