@@ -48,6 +48,52 @@ services:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 1s
       retries: 10
+    
+  mssqldb:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssqldb
+    restart: unless-stopped
+    ports:
+      - 1433:1433
+    environment:
+      SA_PASSWORD: Root@Password
+      ACCEPT_EULA: Y
+    volumes:
+      - ./data/mssqldb:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-Usa", "-PRoot@Password", "-Q", "SELECT 1"]
+      timeout: 1s
+      retries: 10
+  
+  postgresdb:
+    image: postgres:16.3
+    container_name: postgresdb
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+    volumes:
+      - ./data/postgresdb:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "root"]
+      timeout: 1s
+      retries: 10
+
+  redis:
+    image: redis:7.2.5
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      timeout: 30s
+      retries: 5
+    command: redis-server  --requirepass rootpassword
   
   # fast-api:
   #   build: .
