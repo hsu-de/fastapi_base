@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 # pip install pydantic[email]
 from datetime import datetime
@@ -23,7 +23,7 @@ class UserBase(BaseModel):
 
 class UserSchema(UserBase):
     birthday: datetime
-    role: int
+    role: int = Field(default=0, description="role id of user", ge=0, lt=2)
     accountLevel: int
     isRecommended: bool
 
